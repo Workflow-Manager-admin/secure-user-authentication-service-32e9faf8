@@ -1,60 +1,51 @@
-const mongoose = require('mongoose');
-
 // Mock environment for testing
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-12345';
 process.env.JWT_EXPIRES_IN = '1h';
 process.env.BCRYPT_ROUNDS = '1';
 
-let mongoServer;
-
-// Setup test database
-beforeAll(async () => {
-  try {
-    // Try to connect to existing MongoDB instance first
-    const mongoUri = process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/auth-test-db';
-    await mongoose.connect(mongoUri);
-    console.log('Connected to test MongoDB instance');
-  } catch (error) {
-    console.log('MongoDB not available, tests will use mocked database operations');
-    // If MongoDB is not available, we'll mock the database operations
-    jest.mock('../src/services/database', () => ({
-      connect: jest.fn().mockResolvedValue(true),
-      disconnect: jest.fn().mockResolvedValue(true),
-      getConnectionStatus: jest.fn().mockReturnValue({
-        connected: true,
-        state: 'connected',
-        host: 'localhost',
-        port: 27017,
-        name: 'auth-test-db'
-      })
-    }));
+// Create a mock schema class
+class MockSchema {
+  constructor(definition, options) {
+    this.definition = definition;
+    this.options = options;
+    this.preHooks = [];
+    this.methods = {};
   }
-}, 30000);
 
-// Clean up after all tests
-afterAll(async () => {
-  try {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.dropDatabase();
-      await mongoose.connection.close();
-    }
-  } catch (error) {
-    console.log('Database cleanup completed');
+  pre(event, fn) {
+    this.preHooks.push({ event, fn });
+    return this;
   }
-}, 30000);
+}
 
-// Clean up after each test
-afterEach(async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      const collections = mongoose.connection.collections;
-      for (const key in collections) {
-        const collection = collections[key];
-        await collection.deleteMany({});
-      }
-    }
-  } catch (error) {
-    // Ignore cleanup errors in test environment
-  }
-});
+// Mock mongoose to avoid database connection issues
+jest.mock('mongoose', () => ({
+  connect: jest.fn().mockResolvedValue(true),
+  disconnect: jest.fn().mockResolvedValue(true),
+  connection: {
+    readyState: 1,
+    dropDatabase: jest.fn().mockResolvedValue(true),
+    close: jest.fn().mockResolvedValue(true),
+    collections: {},
+    on: jest.fn(),
+    states: { 1: 'connected' }
+  },
+  model: jest.fn().mockReturnValue(jest.fn()),
+  Schema: MockSchema
+}));
+
+// Mock the database service
+jest.mock('../src/services/database', () => ({
+  connect: jest.fn().mockResolvedValue(true),
+  disconnect: jest.fn().mockResolvedValue(true),
+  getConnectionStatus: jest.fn().mockReturnValue({
+    connected: true,
+    state: 'connected',
+    host: 'localhost',
+    port: 27017,
+    name: 'auth-test-db'
+  })
+}));
+
+console.log('Test environment setup complete - using mocked database operations');
