@@ -14,73 +14,21 @@ database.connect().catch(error => {
   console.error('Failed to connect to database:', error);
   process.exit(1);
 });
-=======
 
-Explanation: Update swagger configuration to include authentication documentation
-````edit file="secure-user-authentication-service-32e9faf8/user_auth_backend/swagger.js"
-<<<<<<< SEARCH
-const swaggerJSDoc = require('swagger-jsdoc');
-
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'My Express API',
-      version: '1.0.0',
-      description: 'A simple Express API documented with Swagger',
-    }
-  },
-  apis: ['./src/routes/*.js'], // Path to the API docs
-};
-
-const swaggerSpec = swaggerJSDoc(options);
-module.exports = swaggerSpec;
-=======
-const swaggerJSDoc = require('swagger-jsdoc');
-
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'User Authentication API',
-      version: '1.0.0',
-      description: 'A secure user authentication backend API with JWT tokens, password encryption, and input validation',
-    },
-    components: {
-      securitySchemes: {
-        BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT'
-        }
-      }
-    },
-    tags: [
-      {
-        name: 'Health',
-        description: 'Health check endpoints'
-      },
-      {
-        name: 'Authentication',
-        description: 'User authentication endpoints'
-      }
-    ]
-  },
-  apis: ['./src/routes/*.js'], // Path to the API docs
-};
-
-const swaggerSpec = swaggerJSDoc(options);
-module.exports = swaggerSpec;
-
+// CORS configuration
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Trust proxy for proper host detection
 app.set('trust proxy', true);
+
+// Swagger documentation setup with dynamic host detection
 app.use('/docs', swaggerUi.serve, (req, res, next) => {
-  const host = req.get('host');           // may or may not include port
-  let protocol = req.protocol;          // http or https
+  const host = req.get('host');
+  let protocol = req.protocol;
 
   const actualPort = req.socket.localPort;
   const hasPort = host.includes(':');

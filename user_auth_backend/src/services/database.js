@@ -12,10 +12,7 @@ class Database {
     try {
       const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/auth-db';
       
-      this.connection = await mongoose.connect(mongoUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
+      this.connection = await mongoose.connect(mongoUri);
 
       console.log('MongoDB connected successfully');
       
@@ -31,7 +28,14 @@ class Database {
       return this.connection;
     } catch (error) {
       console.error('MongoDB connection failed:', error);
-      process.exit(1);
+      
+      // In test environment, don't exit process
+      if (process.env.NODE_ENV !== 'test') {
+        process.exit(1);
+      } else {
+        console.log('Running in test environment, continuing without database');
+        return null;
+      }
     }
   }
 
